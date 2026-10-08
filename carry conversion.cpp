@@ -1,113 +1,132 @@
-#include<iostream>
-#include <iomanip>
-#include<vector>
+ï»¿#include <iostream>
+#include <vector>
 #include <string>
+#include <limits>
+#include <cstdlib>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 using namespace std;
 
-vector<long long> binarynum;
+// å­—å…ƒè½‰æˆå°æ‡‰çš„æ•¸å€¼ (0~15)ï¼Œéæ³•å­—å…ƒå›å‚³ -1
+int digitValue(char c)
+{
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 10;
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 10;
+	return -1;
+}
 
+// å»æ‰å­—ä¸²å‰å¾Œçš„ç©ºç™½
+string trim(const string& s)
+{
+	size_t begin = s.find_first_not_of(" \t\r\n");
+	if (begin == string::npos)
+		return "";
+	size_t end = s.find_last_not_of(" \t\r\n");
+	return s.substr(begin, end - begin + 1);
+}
 
-void convertobinary(long long num);
+// ä¾æŒ‡å®šé€²ä½è§£æå­—ä¸²ï¼Œæ ¼å¼éŒ¯èª¤æˆ–è¶…å‡ºç¯„åœå›å‚³ false
+bool parseNumber(const string& s, int base, unsigned long long& out)
+{
+	size_t start = 0;
+	if (base == 16 && s.size() > 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+		start = 2;  // å…è¨± 0x é–‹é ­
+	if (start >= s.size())
+		return false;
+
+	const unsigned long long maxValue = numeric_limits<unsigned long long>::max();
+	unsigned long long value = 0;
+	for (size_t i = start; i < s.size(); i++)
+	{
+		int d = digitValue(s[i]);
+		if (d < 0 || d >= base)
+			return false;
+		if (value > (maxValue - d) / base)  // æº¢ä½
+			return false;
+		value = value * base + d;
+	}
+	out = value;
+	return true;
+}
+
+// å›å‚³äºŒé€²ä½å„ä½å…ƒï¼Œbits[i] ç‚ºç¬¬ i ä½
+vector<int> convertToBinary(unsigned long long num)
+{
+	vector<int> bits;
+	do
+	{
+		bits.push_back(static_cast<int>(num % 2));
+		num /= 2;
+	} while (num > 0);
+	return bits;
+}
 
 int main()
 {
-	int carry, select;
-	long long number = 0;
-	string inputbinary;
+#ifdef _WIN32
+	SetConsoleOutputCP(CP_UTF8);  // åŸå§‹æª”ç‚º UTF-8ï¼Œè®“ä¸»æ§å°æ­£ç¢ºé¡¯ç¤ºä¸­æ–‡
+#endif
 
-	while (1)
+	const int bases[] = { 16, 10, 8, 2 };
+	const char* baseNames[] = { "åå…­é€²ä½", "åé€²ä½", "å…«é€²ä½", "äºŒé€²ä½" };
+
+	while (true)
 	{
-
-
-		cout << "­nÂà´«ªº¶i¦ì(1)16¶i¦ì (2)10¶i¦ì (3)8¶i¦ì (4)2¶i¦ì (5)µ²§ô : ";
-		cin >> select;
-		if (select == 1)
-			carry = 16;
-		else if (select == 2)
-			carry = 10;
-		else if (select == 3)
-			carry = 8;
-		else if (select == 4)
-		{
-		}
-		else
+		cout << "è¦è½‰æ›çš„é€²ä½(1)16é€²ä½ (2)10é€²ä½ (3)8é€²ä½ (4)2é€²ä½ (5)çµæŸ : ";
+		string line;
+		if (!getline(cin, line))  // EOF
 			break;
 
-		if (select < 4)
+		line = trim(line);
+		if (line == "5")
+			break;
+		if (line.size() != 1 || line[0] < '1' || line[0] > '4')
 		{
+			cout << "è«‹è¼¸å…¥ 1~5!\n\n";
+			continue;
+		}
+		int select = line[0] - '0';
+		int base = bases[select - 1];
 
-			while (cout << "¿é¤J­nÂà´«ªº¼Æ¦r:", !(cin >> setbase(carry) >> number))
+		unsigned long long number = 0;
+		bool ok = false;
+		while (true)
+		{
+			cout << "è¼¸å…¥è¦è½‰æ›çš„" << baseNames[select - 1] << "æ•¸å­—:";
+			if (!getline(cin, line))  // EOF
+				break;
+			if (parseNumber(trim(line), base, number))
 			{
-				//¿ù»~:¿é¤J«D¼Æ¦r 
-				cout << "®æ¦¡¿ù»~!½Ğ¦A¿é¤J¤@¦¸!! \n";
-				cin.clear();
-				cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');    // ²MªÅ½w½Ä°Ï. 
+				ok = true;
+				break;
 			}
-
+			cout << "æ ¼å¼éŒ¯èª¤!è«‹å†è¼¸å…¥ä¸€æ¬¡!! \n";
 		}
-		else
-		{
-			cout << "¿é¤J¤G¶i¦ì:";
-			cin >> inputbinary;
-			number = 0;
-			for (unsigned int i = inputbinary.size(), j = 0; i > 0; i--)
-			{
-				if ((inputbinary[i - 1] - '0') < 2) //¦r¤¸Âà´«¦¨¼Æ¦r =>¥i¥H¶¶«K§PÂ_¨Ï¥ÎªÌ¿é¤Jªº¨ì©³¬O¤£¬O¼Æ¦r
-				{
-					number += (inputbinary[i - 1] - '0')*pow(2, j);
-					j++;
-				}
-
-			}
-
-			inputbinary.clear();
-
-		}
-		cout << "\n";
-		cout << "¤G¶i¦ì:\n";
-		convertobinary(number);
-		for (int j = binarynum.size(); j > 0; j--)
-		{
-			cout << dec << (j - 1) << " ";
-		}
-		cout << "\n";
-		for (int j = binarynum.size(); j > 0; j--)
-		{
-			if ((j - 1) <= 9)
-				cout << dec << binarynum[j - 1] << " ";
-			else
-				cout << dec << binarynum[j - 1] << "  ";
-
-		}
-
-		if (binarynum.size()>0) //²M°£vector¤º®e
-			binarynum.clear();
+		if (!ok)
+			break;
 
 		cout << "\n";
-		cout << endl << "¤K¶i¦ì:" << oct << number;
+		cout << "äºŒé€²ä½:\n";
+		vector<int> bits = convertToBinary(number);
+		for (size_t j = bits.size(); j > 0; j--)
+			cout << (j - 1) << " ";
 		cout << "\n";
-		cout << endl << "¤Q¶i¦ì:" << dec << number;
+		for (size_t j = bits.size(); j > 0; j--)
+			cout << bits[j - 1] << ((j - 1) <= 9 ? " " : "  ");
 		cout << "\n";
-		cout << endl << "¤Q¤»¶i¦ì:" << hex << number << "\n\n";
 
+		cout << "\nå…«é€²ä½:" << oct << number << "\n";
+		cout << "\nåé€²ä½:" << dec << number << "\n";
+		cout << "\nåå…­é€²ä½:" << hex << number << dec << "\n\n";
 	}
 
+#ifdef _WIN32
 	system("pause");
-}
-
-void convertobinary(long long num)
-{
-
-	int Remainder = 0;
-	if (num < 2)
-	{
-		binarynum.push_back(num);
-		//cout  << num << ", ";
-		return;
-	}
-	Remainder = num % 2;
-	num /= 2;
-	binarynum.push_back(Remainder);
-	convertobinary(num);	
-
+#endif
+	return 0;
 }
